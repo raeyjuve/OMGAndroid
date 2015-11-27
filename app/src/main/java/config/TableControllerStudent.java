@@ -70,7 +70,7 @@ public class TableControllerStudent extends DatabaseHandler {
         return listStudent;
     }
 
-    private void addObjectToList(Cursor cursor, List<ObjectStudent> listStudent) {
+    public void addObjectToList(Cursor cursor, List<ObjectStudent> listStudent) {
         /**
          * buat variable kemudian isikan masing-masing entity
          */
@@ -84,5 +84,56 @@ public class TableControllerStudent extends DatabaseHandler {
         student.setEmail(email);
 
         listStudent.add(student);
+    }
+
+    public ObjectStudent readSingleRecord(int studentId) {
+        ObjectStudent student = null;
+
+        String sql = "SELECT * FROM students WHERE id = " + studentId;
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        Cursor cursor = db.rawQuery(sql, null);
+        if (cursor.moveToFirst()) {
+            int id = Integer.parseInt(cursor.getString(cursor.getColumnIndex("id")));
+            String firstName = cursor.getString(cursor.getColumnIndex("firstname"));
+            String email = cursor.getString(cursor.getColumnIndex("email"));
+
+            student = new ObjectStudent();
+            student.setId(id);
+            student.setFirstname(firstName);
+            student.setEmail(email);
+        }
+
+        cursor.close();
+        db.close();
+
+        return student;
+    }
+
+    public boolean update(ObjectStudent student) {
+        ContentValues values = new ContentValues();
+        values.put("firstname", student.getFirstname());
+        values.put("email", student.getEmail());
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        String where = "id = ?";
+        String[] whereArgs = { String.valueOf(student.getId()) };
+
+        boolean updateSuccessful = db.update("students", values, where, whereArgs) > 0;
+
+        db.close();
+
+        return updateSuccessful;
+    }
+
+    public boolean delete(int id) {
+        boolean success = false;
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        success = db.delete("students", "id = '" + id + "'", null) > 0;
+        db.close();
+
+        return success;
     }
 }

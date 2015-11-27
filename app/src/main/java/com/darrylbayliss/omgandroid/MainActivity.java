@@ -3,9 +3,6 @@ package com.darrylbayliss.omgandroid;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.database.sqlite.SQLiteDatabase;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -24,6 +21,7 @@ import android.widget.Toast;
 
 import java.util.List;
 
+import config.OnLongClickListenerStudentRecord;
 import config.TableControllerStudent;
 import pojo.ObjectStudent;
 
@@ -57,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
         *   process all database load here
         */
         load();
+
+//        initComponentAfterLoad();
     }
 
     @Override
@@ -165,10 +165,25 @@ public class MainActivity extends AppCompatActivity {
                 tblRow.setLayoutParams(new TableRow.LayoutParams(
                         TableRow.LayoutParams.FILL_PARENT,
                         TableRow.LayoutParams.WRAP_CONTENT));
+                tblRow.setTag(String.valueOf(student.getId()));
+                tblRow.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View view) {
+                        return clickOnName(view.getContext(), Integer.parseInt(view.getTag().toString()));
+                    }
+                });
                 i++;
 
                 TextView txtName = new TextView(this);
                 txtName.setText(student.getFirstname());
+//                txtName.setTag(String.valueOf(student.getId()));
+//                txtName.setOnClickListener(new OnLongClickListenerStudentRecord());
+//                txtName.setOnLongClickListener(new View.OnLongClickListener() {
+//                    @Override
+//                    public boolean onLongClick(View view) {
+//                        return clickOnName(view.getContext(), Integer.parseInt(view.getTag().toString()));
+//                    }
+//                });
 
                 TextView txtEmail = new TextView(this);
                 txtEmail.setText(student.getEmail());
@@ -196,5 +211,84 @@ public class MainActivity extends AppCompatActivity {
                     TableLayout.LayoutParams.FILL_PARENT,
                     TableLayout.LayoutParams.WRAP_CONTENT));
         }
+    }
+
+    private boolean clickOnName(final Context context, final int id) {
+        final CharSequence[] item = {"Edit", "Delete"};
+        AlertDialog.Builder alert = new AlertDialog.Builder(context);
+        alert.setItems(item, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int item) {
+                if (item == 0) {
+//                    editRecord(Integer.parseInt(id));
+                    editRecord(context, id);
+                } else if (item == 1) {
+                    deleteRecord(context, id);
+                }
+
+                dialog.dismiss();
+            }
+        });
+        alert.show();
+
+        return false;
+    }
+
+    private void editRecord(final Context context, final int studentId) {
+        /**
+         * 1.Show Dialog
+         * 2.Get Object Student from DB
+         * 3.Create EditText for Name & Email, then Put Object Student in each
+         * 4.Create Alert onclick update success
+         */
+        final TableControllerStudent tableControl = new TableControllerStudent(context);
+        final ObjectStudent student = tableControl.readSingleRecord(studentId);
+
+        LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View view = inflater.inflate(R.layout.student_input_form, null, false);
+
+        final EditText editFirstName = (EditText) view.findViewById(R.id.editTextStudentFirstname);
+        final EditText editEmail = (EditText) view.findViewById(R.id.editTextStudentEmail);
+
+        editFirstName.setText(student.getFirstname());
+        editEmail.setText(student.getEmail());
+
+        AlertDialog.Builder alert = new AlertDialog.Builder(context);
+        alert.setView(view);
+        alert.setTitle("Edit Record");
+        alert.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int id) {
+                ObjectStudent newStudent = new ObjectStudent();
+                newStudent.setId(studentId);
+                newStudent.setFirstname(editFirstName.getText().toString());
+                newStudent.setEmail(editEmail.getText().toString());
+
+                boolean success = tableControl.update(newStudent);
+                if (success) {
+                    Toast.makeText(context, "Student information was Updated.", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, "Unable to update student information.", Toast.LENGTH_SHORT).show();
+                }
+                dialog.cancel();
+
+                countRecordSize();
+                getRecords();
+            }
+        });
+        alert.show();
+    }
+
+    private void deleteRecord(final Context context, final int studentId) {
+        boolean success = new TableControllerStudent(context).delete(studentId);
+
+        if (success){
+            Toast.makeText(context, "Student record was deleted.", Toast.LENGTH_SHORT).show();
+        }else{
+            Toast.makeText(context, "Unable to delete student record.", Toast.LENGTH_SHORT).show();
+        }
+
+        countRecordSize();
+        getRecords();
     }
 }
